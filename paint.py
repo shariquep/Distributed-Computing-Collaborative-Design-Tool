@@ -1,8 +1,15 @@
 from tkinter import *
 from tkinter import ttk, colorchooser
+import multiprocessing
+import json
+from _thread import start_new_thread
+
+
 
 class main:
-    def __init__(self,master):
+    def __init__(self,master,pipe):
+        self.params = {} 
+        self.guiPipe = pipe
         self.master = master
         self.color_fg = 'black'
         self.color_bg = 'white'
@@ -12,17 +19,60 @@ class main:
         self.drawWidgets()
         self.c.bind('<B1-Motion>',self.paint)#drwaing the line 
         self.c.bind('<ButtonRelease-1>',self.reset)
+        start_new_thread(self.acceptCommand, ('dummy',))
+
 
     def paint(self,e):
+        
+
         if self.old_x and self.old_y:
             self.c.create_line(self.old_x,self.old_y,e.x,e.y,width=self.penwidth,fill=self.color_fg,capstyle=ROUND,smooth=True)
 
         self.old_x = e.x
         self.old_y = e.y
+        
+        if "x" in self.params:
+            self.params["x"].append(self.old_x)
+        else:        
+            self.params["x"] = [self.old_x]
+        
+        if "y" in self.params:
+            self.params["y"].append(self.old_y)
+        else:        
+            self.params["y"] = [self.old_y]
+            
+
 
     def reset(self,e):    #reseting or cleaning the canvas 
         self.old_x = None
-        self.old_y = None      
+        self.old_y = None
+        self.params["width"] = self.penwidth
+        self.params["fill"] = self.color_fg
+        self.params["type"] = "pencil-Line"
+        self.guiPipe.send(json.dumps(self.params))
+        self.params = {}      
+
+    def acceptCommand(self,dummy):
+        
+        while True:
+            raw = self.guiPipe.recv()
+            params = json.loads(raw)
+            if params["type"] == "pencil-Line":
+                if "x" in params and "y" in params:
+                    x = params["x"]
+                    y = params["y"]
+                    width = params["width"]
+                    col = params["fill"]
+                    for i in range(1,len(x)):
+                        self.c.create_line(x[i-1],y[i-1],x[i],y[i],width=width,fill=col,capstyle=ROUND,smooth=True)
+
+            elif params["type"] == "clear":
+                self.c.delete(ALL)
+
+            elif params["type"] == "changeBG":    
+                self.c['bg'] = params["bg"]
+
+            params = {}
 
     def changeW(self,e): #change Width of pen through slider
         self.penwidth = e
@@ -30,6 +80,9 @@ class main:
 
     def clear(self):
         self.c.delete(ALL)
+        self.params["type"] = "clear"
+        self.guiPipe.send(json.dumps(self.params))
+        self.params = {}
 
     def change_fg(self):  #changing the pen color
         self.color_fg=colorchooser.askcolor(color=self.color_fg)[1]
@@ -37,6 +90,10 @@ class main:
     def change_bg(self):  #changing the background color canvas
         self.color_bg=colorchooser.askcolor(color=self.color_bg)[1]
         self.c['bg'] = self.color_bg
+        self.params["type"] = "changeBG"
+        self.params["bg"] = self.color_bg
+        self.guiPipe.send(json.dumps(self.params))
+        self.params = {}
 
     def drawWidgets(self):
         self.controls = Frame(self.master,padx = 5,pady = 5)

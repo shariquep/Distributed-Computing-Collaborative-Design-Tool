@@ -1,6 +1,7 @@
 from PIL import Image, ImageTk
 import tkinter as tk
 import paint
+import multiprocessing
 
 
 name=''
@@ -21,11 +22,11 @@ def existingSession(e1,e2,root):
     request_type="join"
     root.destroy()
 
-def startPaint():
+def startPaint(guiOut):
 
         print("Paint started")
         root = tk.Tk()
-        paint.main(root)
+        paint.main(root,guiOut)
         root.title('Paint App')
         root.mainloop()
         

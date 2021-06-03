@@ -3,26 +3,24 @@ import json
 import threading
 from _thread import start_new_thread
 import interface
+import multiprocessing
+
 
 # serverAddressPortConnect   = ("127.0.0.1", 20001)
 # hostPort = 20003
-bufferSize = 1024
+bufferSize = 1024*1024
 localIP = "127.0.0.1"
 
 class Node:
 
     def __init__(self):
+        self.guiPipe, self.nodePipe = multiprocessing.Pipe()
         self.host = False
         self.connectPort = (localIP, 20001)
         self.baseHostPort = 30001
         self.datagram = {}
         print("Establishing Connection ...")
         self.connectSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
-        
-        # self.datagram["name"] = input("Input Name: ")
-        # self.datagram["request_type"] = input("create session or join: ")
-        # if self.datagram["request_type"] == "join":
-        #     self.datagram["key"] = input("Input key: ")
 
         self.startWindow()
 
@@ -68,7 +66,7 @@ class Node:
         self.hostSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
         self.hostSocket.bind((localIP, self.hostPort))
         
-        interface.startPaint()
+        start_new_thread(interface.startPaint, (self.guiPipe,))
 
         while(True):
             raw,clientAddress = self.connectSocket.recvfrom(bufferSize)
@@ -82,7 +80,8 @@ class Node:
         else:
             self.connectedHostAdd = (self.datagram["host"][0],self.datagram["host"][1])
             self.connectSocket.sendto(str.encode(json.dumps(self.datagram)), self.connectedHostAdd)
-
+            
+            start_new_thread(interface.startPaint, (self.guiPipe,))
             
             send = threading.Thread(target=self.sendMessage,  daemon=True)
             read = threading.Thread(target=self.readMessage,  daemon=True)
@@ -96,14 +95,15 @@ class Node:
     
     def sendMessage(self):
         if self.host:
-            message = input()
-            self.datagram["message"] = message
-            for address in self.session["clients"]:
-                self.hostSocket.sendto(str.encode(json.dumps(self.datagram)), address)
+            while True:
+                message = self.nodePipe.recv()
+                self.datagram["message"] = message
+                for address in self.session["clients"]:
+                    self.hostSocket.sendto(str.encode(json.dumps(self.datagram)), address)
 
         else:
             while(True):
-                message = input()
+                message = self.nodePipe.recv()
                 self.datagram["message"] = message
                 self.connectSocket.sendto(str.encode(json.dumps(self.datagram)), self.connectedHostAdd)
         pass
@@ -113,7 +113,7 @@ class Node:
             while(True):
                 raw, clientAdd = self.hostSocket.recvfrom(bufferSize)
                 self.response = json.loads(raw)
-                print(self.response["message"])
+                self.nodePipe.send(self.response["message"])
                 self.datagram["message"] = self.response["message"]
                 for address in self.session["clients"]:
                     if address != clientAdd:
@@ -125,49 +125,9 @@ class Node:
                 if self.response["PortUpdate"]:
                     self.connectedHostAdd = (self.connectedHostAdd[0], self.response["newPort"])
                 else:
-                    print(self.response["message"])
+                    self.nodePipe.send(self.response["message"])
                     
         pass
-
-
-
-# hostport = 0    
-
-# def getResponse(socket):
-#     while(True):
-#         response = json.loads(socket.recvfrom(bufferSize)[0])
-#         print(response["message"])
-
-# def sendRequest(socket,response,host):
-#     while(True):
-#         message = input()
-#         response["message"] = message
-#         socket.sendto(str.encode(json.dumps(response)), host)
-        
-
-# def joinSession(response,socket):
-#     if response["key"] == None:
-#         print("Invalid key")
-#     else:
-#         hostAdd = (response["host"][0],response["host"][1])
-#         socket.sendto(str.encode(json.dumps(response)), hostAdd)
-
-#         sendMessage = threading.Thread(target=sendRequest, args=(socket,response,hostAdd,), daemon=True)
-#         recieveMessage = threading.Thread(target=getResponse, args=(socket,), daemon=True)
-
-#         sendMessage.start()
-#         recieveMessage.start()
-
-#         sendMessage.join()
-
-# def hostRecieve(socket):
-#     while(True):
-#         response = json.loads(socket.recvfrom(bufferSize)[0])
-#         print(response["message"])
-
-# def hostSend():
-#     pass
-
 
     
 if __name__ == "__main__":
