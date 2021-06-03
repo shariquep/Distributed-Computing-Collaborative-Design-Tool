@@ -2,7 +2,7 @@ import socket
 import json
 import threading
 from _thread import start_new_thread
-
+import interface
 
 # serverAddressPortConnect   = ("127.0.0.1", 20001)
 # hostPort = 20003
@@ -18,20 +18,31 @@ class Node:
         self.datagram = {}
         print("Establishing Connection ...")
         self.connectSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
-        self.datagram["name"] = input("Input Name: ")
-        self.datagram["request_type"] = input("create session or join: ")
         
-        if self.datagram["request_type"] == "join":
-            self.datagram["key"] = input("Input key: ")
+        # self.datagram["name"] = input("Input Name: ")
+        # self.datagram["request_type"] = input("create session or join: ")
+        # if self.datagram["request_type"] == "join":
+        #     self.datagram["key"] = input("Input key: ")
+
+        self.startWindow()
 
         self.connectSocket.sendto(str.encode(json.dumps(self.datagram)), self.connectPort)
         self.datagram = json.loads(self.connectSocket.recvfrom(bufferSize)[0])
+
 
         if self.datagram["request_type"] == "create":
             self.createSession()
         elif self.datagram["request_type"] == "join":
             self.joinSession()
     
+    def startWindow(self):
+        name,request_type,key=interface.display()
+        self.datagram["name"] = name
+        self.datagram["request_type"] = request_type
+        if(request_type == "join"):
+            self.datagram["key"] = key
+
+
 
     def acceptNewClient(self,raw,clientAddress):
         self.datagram = json.loads(raw)
@@ -57,6 +68,8 @@ class Node:
         self.hostSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
         self.hostSocket.bind((localIP, self.hostPort))
         
+        interface.startPaint()
+
         while(True):
             raw,clientAddress = self.connectSocket.recvfrom(bufferSize)
             self.session["clients"].append(clientAddress)
@@ -70,8 +83,10 @@ class Node:
             self.connectedHostAdd = (self.datagram["host"][0],self.datagram["host"][1])
             self.connectSocket.sendto(str.encode(json.dumps(self.datagram)), self.connectedHostAdd)
 
+            
             send = threading.Thread(target=self.sendMessage,  daemon=True)
             read = threading.Thread(target=self.readMessage,  daemon=True)
+            
 
             send.start()
             read.start()
