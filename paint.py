@@ -11,6 +11,7 @@ class main:
         self.params = {} 
         self.guiPipe = pipe
         self.master = master
+        self.drawType = "pen"
         self.color_fg = 'black'
         self.color_bg = 'white'
         self.old_x = None
@@ -95,6 +96,10 @@ class main:
         self.guiPipe.send(json.dumps(self.params))
         self.params = {}
 
+    def set_drawType(self,type):
+        print("Type",type)
+        self.drawType=type
+
     def save_canvas(self):  #changing the background color canvas
         print("Saved")
 
@@ -116,25 +121,28 @@ class main:
         bg_btn =Button(top_frame, text="BG Color",command=self.change_bg)
         bg_btn.grid(row=1, column=1)
 
-        circle_btn =Button(top_frame, text="Circle")
+        circle_btn =Button(top_frame, text="Circle",command= lambda: self.set_drawType("Circle"))
         circle_btn.grid(row=1, column=2)
 
-        rect_btn =Button(top_frame, text="Rect")
+        rect_btn =Button(top_frame, text="Rect",command= lambda: self.set_drawType("Rect"))
         rect_btn.grid(row=1, column=3)
 
-        
-        Label(top_frame, text='Pen Width:').grid(row=1,column=4,padx= 5)
+        pen_btn =Button(top_frame, text="Pen",command=lambda: self.set_drawType("Pen"))
+        pen_btn.grid(row=1, column=4)
+
+        line_btn =Button(top_frame, text="Line",command= lambda: self.set_drawType("Line"))
+        line_btn.grid(row=1, column=5)
+
+        Label(top_frame, text='Pen Width:').grid(row=1,column=6,padx= 5)
         self.slider = ttk.Scale(top_frame,from_= 5, to = 100,command=self.changeW,orient=HORIZONTAL)
         self.slider.set(self.penwidth)
-        self.slider.grid(row=1,column=5,ipadx=10,padx=5)
+        self.slider.grid(row=1,column=7,ipadx=10,padx=5)
 
         
         save_btn =Button(top_frame, text="Save",command= self.save_canvas)
-        save_btn.grid(row=1, column=6,padx=15)
+        save_btn.grid(row=1, column=8,padx=15)
             
             
         # Display canvas in right_frame
         self.c = Canvas(bottom_frame,width=500,height=500,bg=self.color_bg,)
         self.c.grid(row=0,column=0, padx=5, pady=5)
-
-
