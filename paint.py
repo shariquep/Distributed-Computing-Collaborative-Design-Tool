@@ -3,12 +3,16 @@ from tkinter import ttk, colorchooser
 import multiprocessing
 import json
 from _thread import start_new_thread
-
+from helper import *
 
 
 class main:
-    def __init__(self,master,pipe):
+    def __init__(self,master,pipe,key):
         self.params = {} 
+        self.helperFunc = {"pencilLine":pencilLine, "clearCanvas": clearCanvas, "changeBG": changeBG,
+                            "drawRectangle":drawRectangle, "drawCircle": drawCircle, "straightLine":straightLine}
+        self.key = key
+        self.recordXY = True
         self.guiPipe = pipe
         self.master = master
         self.drawType = "Pen"
@@ -25,54 +29,60 @@ class main:
 
     def paint(self,e):
         
+        if self.drawType == "Pen":
+            self.old_x, self.old_y, self.params = drawPencil(self.old_x, self.old_y,e,self.penwidth,
+                                                            self.color_fg,self.params,self.c)
+        elif self.recordXY:
+            self.recordXY = False
+            self.old_x = e.x
+            self.old_y = e.y
 
-        if self.old_x and self.old_y:
-            self.c.create_line(self.old_x,self.old_y,e.x,e.y,width=self.penwidth,fill=self.color_fg,capstyle=ROUND,smooth=True)
+    def reset(self,e):    #reseting or cleaning the canvas
+        if self.drawType != "Pen":
+            self.recordXY = True
+            self.params["x1"] = self.old_x
+            self.params["y1"] = self.old_y
+            self.params["x2"] = e.x
+            self.params["y2"] = e.y
 
-        self.old_x = e.x
-        self.old_y = e.y
-        
-        if "x" in self.params:
-            self.params["x"].append(self.old_x)
-        else:        
-            self.params["x"] = [self.old_x]
-        
-        if "y" in self.params:
-            self.params["y"].append(self.old_y)
-        else:        
-            self.params["y"] = [self.old_y]
-            
+            if self.drawType == "Rect":
+                self.c.create_rectangle(self.old_x,self.old_y,e.x,e.y,width=self.penwidth,outline=self.color_fg)
+                self.params["type"] = "drawRectangle"
 
+            elif self.drawType == "Circle":
+                self.c.create_oval(self.old_x,self.old_y,e.x,e.y,width=self.penwidth,outline=self.color_fg)
+                self.params["type"] = "drawCircle"
 
-    def reset(self,e):    #reseting or cleaning the canvas 
-        self.old_x = None
-        self.old_y = None
+            elif self.drawType == "Line":    
+                self.c.create_line(self.old_x,self.old_y,e.x,e.y,width=self.penwidth,fill=self.color_fg,capstyle=ROUND,smooth=True)
+                self.params["type"] = "straightLine"
+                
+        else:
+            self.params["type"] = "pencilLine"
+
         self.params["width"] = self.penwidth
         self.params["fill"] = self.color_fg
-        self.params["type"] = "pencil-Line"
         self.guiPipe.send(json.dumps(self.params))
         self.params = {}      
+        self.old_x = None
+        self.old_y = None
 
+    def restoreHistory(self,commands):
+        for params in commands:
+            self.helperFunc[params["type"]](self.c,params)
+    
     def acceptCommand(self,dummy):
         
         while True:
             raw = self.guiPipe.recv()
             params = json.loads(raw)
-            if params["type"] == "pencil-Line":
-                if "x" in params and "y" in params:
-                    x = params["x"]
-                    y = params["y"]
-                    width = params["width"]
-                    col = params["fill"]
-                    for i in range(1,len(x)):
-                        self.c.create_line(x[i-1],y[i-1],x[i],y[i],width=width,fill=col,capstyle=ROUND,smooth=True)
 
-            elif params["type"] == "clear":
-                self.c.delete(ALL)
+            if type(params) is list:
+                self.restoreHistory(params)
 
-            elif params["type"] == "changeBG":    
-                self.c['bg'] = params["bg"]
-
+            else:
+                self.helperFunc[params["type"]](self.c,params)
+           
             params = {}
 
     def changeW(self,e): #change Width of pen through slider
@@ -81,7 +91,7 @@ class main:
 
     def clear(self):
         self.c.delete(ALL)
-        self.params["type"] = "clear"
+        self.params["type"] = "clearCanvas"
         self.guiPipe.send(json.dumps(self.params))
         self.params = {}
 
@@ -114,6 +124,7 @@ class main:
             
         # Create frames and labels in left_frame 
         Label(top_frame, text="Session Code: ").grid(row=0, column=0,pady=5)
+        Label(top_frame, text=self.key).grid(row=0, column=1,pady=5)
 
         fg_btn =Button(top_frame, text="Pen Color",command=self.change_fg)
         fg_btn.grid(row=1, column=0)
