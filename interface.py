@@ -22,11 +22,11 @@ def existingSession(e1,e2,root):
     request_type="join"
     root.destroy()
 
-def startPaint(guiOut):
+def startPaint(guiOut,key):
 
         print("Paint started")
         root = tk.Tk()
-        paint.main(root,guiOut)
+        paint.main(root,guiOut,key)
         root.title('Paint App')
         root.mainloop()
         

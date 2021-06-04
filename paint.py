@@ -3,14 +3,19 @@ from tkinter import ttk, colorchooser
 import multiprocessing
 import json
 from _thread import start_new_thread
-
+from helper import *
 
 
 class main:
-    def __init__(self,master,pipe):
+    def __init__(self,master,pipe,key):
         self.params = {} 
+        self.helperFunc = {"pencilLine":pencilLine, "clearCanvas": clearCanvas, "changeBG": changeBG,
+                            "drawRectangle":drawRectangle, "drawCircle": drawCircle, "straightLine":straightLine}
+        self.key = key
+        self.recordXY = True
         self.guiPipe = pipe
         self.master = master
+        self.drawType = "Pen"
         self.color_fg = 'black'
         self.color_bg = 'white'
         self.old_x = None
@@ -24,75 +29,60 @@ class main:
 
     def paint(self,e):
         
+        if self.drawType == "Pen":
+            self.old_x, self.old_y, self.params = drawPencil(self.old_x, self.old_y,e,self.penwidth,
+                                                            self.color_fg,self.params,self.c)
+        elif self.recordXY:
+            self.recordXY = False
+            self.old_x = e.x
+            self.old_y = e.y
 
-        if self.old_x and self.old_y:
-            self.c.create_line(self.old_x,self.old_y,e.x,e.y,width=self.penwidth,fill=self.color_fg,capstyle=ROUND,smooth=True)
+    def reset(self,e):    #reseting or cleaning the canvas
+        if self.drawType != "Pen":
+            self.recordXY = True
+            self.params["x1"] = self.old_x
+            self.params["y1"] = self.old_y
+            self.params["x2"] = e.x
+            self.params["y2"] = e.y
 
-        self.old_x = e.x
-        self.old_y = e.y
-        
-        if "x" in self.params:
-            self.params["x"].append(self.old_x)
-        else:        
-            self.params["x"] = [self.old_x]
-        
-        if "y" in self.params:
-            self.params["y"].append(self.old_y)
-        else:        
-            self.params["y"] = [self.old_y]
-            
+            if self.drawType == "Rect":
+                self.c.create_rectangle(self.old_x,self.old_y,e.x,e.y,width=self.penwidth,outline=self.color_fg)
+                self.params["type"] = "drawRectangle"
 
+            elif self.drawType == "Circle":
+                self.c.create_oval(self.old_x,self.old_y,e.x,e.y,width=self.penwidth,outline=self.color_fg)
+                self.params["type"] = "drawCircle"
 
-    def reset(self,e):    #reseting or cleaning the canvas 
-        self.old_x = None
-        self.old_y = None
+            elif self.drawType == "Line":    
+                self.c.create_line(self.old_x,self.old_y,e.x,e.y,width=self.penwidth,fill=self.color_fg,capstyle=ROUND,smooth=True)
+                self.params["type"] = "straightLine"
+                
+        else:
+            self.params["type"] = "pencilLine"
+
         self.params["width"] = self.penwidth
         self.params["fill"] = self.color_fg
-        self.params["type"] = "pencil-Line"
         self.guiPipe.send(json.dumps(self.params))
         self.params = {}      
+        self.old_x = None
+        self.old_y = None
 
     def restoreHistory(self,commands):
         for params in commands:
-            if params["type"] == "pencil-Line":
-                if "x" in params and "y" in params:
-                    x = params["x"]
-                    y = params["y"]
-                    width = params["width"]
-                    col = params["fill"]
-                    for i in range(1,len(x)):
-                        self.c.create_line(x[i-1],y[i-1],x[i],y[i],width=width,fill=col,capstyle=ROUND,smooth=True)
-
-            elif params["type"] == "clear":
-                self.c.delete(ALL)
-
-            elif params["type"] == "changeBG":    
-                self.c['bg'] = params["bg"]
-        pass
-
+            self.helperFunc[params["type"]](self.c,params)
+    
     def acceptCommand(self,dummy):
         
         while True:
             raw = self.guiPipe.recv()
             params = json.loads(raw)
+
             if type(params) is list:
                 self.restoreHistory(params)
 
-            elif params["type"] == "pencil-Line":
-                if "x" in params and "y" in params:
-                    x = params["x"]
-                    y = params["y"]
-                    width = params["width"]
-                    col = params["fill"]
-                    for i in range(1,len(x)):
-                        self.c.create_line(x[i-1],y[i-1],x[i],y[i],width=width,fill=col,capstyle=ROUND,smooth=True)
-
-            elif params["type"] == "clear":
-                self.c.delete(ALL)
-
-            elif params["type"] == "changeBG":    
-                self.c['bg'] = params["bg"]
-
+            else:
+                self.helperFunc[params["type"]](self.c,params)
+           
             params = {}
 
     def changeW(self,e): #change Width of pen through slider
@@ -101,7 +91,7 @@ class main:
 
     def clear(self):
         self.c.delete(ALL)
-        self.params["type"] = "clear"
+        self.params["type"] = "clearCanvas"
         self.guiPipe.send(json.dumps(self.params))
         self.params = {}
 
@@ -116,36 +106,54 @@ class main:
         self.guiPipe.send(json.dumps(self.params))
         self.params = {}
 
+    def set_drawType(self,type):
+        print("Type",type)
+        self.drawType=type
+
+    def save_canvas(self):  #changing the background color canvas
+        print("Saved")
+
     def drawWidgets(self):
-        self.controls = Frame(self.master,padx = 5,pady = 5)
-        Label(self.controls, text='Pen Width:',font=('arial 18')).grid(row=0,column=0)
-        self.slider = ttk.Scale(self.controls,from_= 5, to = 100,command=self.changeW,orient=HORIZONTAL)
+
+        self.master.config(bg="skyblue") # specify background color
+        # Create top and bottom frames
+        top_frame = Frame(self.master, width=500, height=200, bg='white')
+        top_frame.grid(row=0, column=0, padx=10, pady=5,ipady=5,ipadx=5)
+        bottom_frame = Frame(self.master, width=550, height=600, bg='grey')
+        bottom_frame.grid(row=1, column=0, padx=10, pady=5)
+            
+        # Create frames and labels in left_frame 
+        Label(top_frame, text="Session Code: ").grid(row=0, column=0,pady=5)
+        Label(top_frame, text=self.key).grid(row=0, column=1,pady=5)
+
+        fg_btn =Button(top_frame, text="Pen Color",command=self.change_fg)
+        fg_btn.grid(row=1, column=0)
+
+        bg_btn =Button(top_frame, text="BG Color",command=self.change_bg)
+        bg_btn.grid(row=1, column=1)
+
+        circle_btn =Button(top_frame, text="Circle",command= lambda: self.set_drawType("Circle"))
+        circle_btn.grid(row=1, column=2)
+
+        rect_btn =Button(top_frame, text="Rect",command= lambda: self.set_drawType("Rect"))
+        rect_btn.grid(row=1, column=3)
+
+        pen_btn =Button(top_frame, text="Pen",command=lambda: self.set_drawType("Pen"))
+        pen_btn.grid(row=1, column=4)
+
+        line_btn =Button(top_frame, text="Line",command= lambda: self.set_drawType("Line"))
+        line_btn.grid(row=1, column=5)
+
+        Label(top_frame, text='Pen Width:').grid(row=1,column=6,padx= 5)
+        self.slider = ttk.Scale(top_frame,from_= 5, to = 100,command=self.changeW,orient=HORIZONTAL)
         self.slider.set(self.penwidth)
-        self.slider.grid(row=0,column=1,ipadx=30)
-        self.controls.pack(side=LEFT)
+        self.slider.grid(row=1,column=7,ipadx=10,padx=5)
+
         
-        self.c = Canvas(self.master,width=500,height=500,bg=self.color_bg,)
-        self.c.pack(fill=BOTH,expand=True)
-
-        menu = Menu(self.master)
-        self.master.config(menu=menu)
-        filemenu = Menu(menu)
-        colormenu = Menu(menu)
-        menu.add_cascade(label='Colors',menu=colormenu)
-        colormenu.add_command(label='Brush Color',command=self.change_fg)
-        colormenu.add_command(label='Background Color',command=self.change_bg)
-        optionmenu = Menu(menu)
-        menu.add_cascade(label='Options',menu=optionmenu)
-        optionmenu.add_command(label='Clear Canvas',command=self.clear)
-        optionmenu.add_command(label='Exit',command=self.master.destroy) 
-        
-    
-    
-
-
-
-
-
-
-
-
+        save_btn =Button(top_frame, text="Save",command= self.save_canvas)
+        save_btn.grid(row=1, column=8,padx=15)
+            
+            
+        # Display canvas in right_frame
+        self.c = Canvas(bottom_frame,width=500,height=500,bg=self.color_bg,)
+        self.c.grid(row=0,column=0, padx=5, pady=5)

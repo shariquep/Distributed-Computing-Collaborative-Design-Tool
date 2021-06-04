@@ -69,7 +69,7 @@ class Node:
         self.hostSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
         self.hostSocket.bind((localIP, self.hostPort))
         
-        start_new_thread(interface.startPaint, (self.guiPipe,))
+        start_new_thread(interface.startPaint, (self.guiPipe,self.datagram["key"],))
 
         while(True):
             raw,clientAddress = self.connectSocket.recvfrom(bufferSize)
@@ -81,10 +81,11 @@ class Node:
         if self.datagram["key"] == None:
             print("Invalid key")
         else:
+            self.key = self.datagram["key"]
             self.connectedHostAdd = (self.datagram["host"][0],self.datagram["host"][1])
             self.connectSocket.sendto(str.encode(json.dumps(self.datagram)), self.connectedHostAdd)
             
-            start_new_thread(interface.startPaint, (self.guiPipe,))
+            start_new_thread(interface.startPaint, (self.guiPipe,self.key))
             
             send = threading.Thread(target=self.sendMessage,  daemon=True)
             read = threading.Thread(target=self.readMessage,  daemon=True)
