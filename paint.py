@@ -52,12 +52,33 @@ class main:
         self.guiPipe.send(json.dumps(self.params))
         self.params = {}      
 
+    def restoreHistory(self,commands):
+        for params in commands:
+            if params["type"] == "pencil-Line":
+                if "x" in params and "y" in params:
+                    x = params["x"]
+                    y = params["y"]
+                    width = params["width"]
+                    col = params["fill"]
+                    for i in range(1,len(x)):
+                        self.c.create_line(x[i-1],y[i-1],x[i],y[i],width=width,fill=col,capstyle=ROUND,smooth=True)
+
+            elif params["type"] == "clear":
+                self.c.delete(ALL)
+
+            elif params["type"] == "changeBG":    
+                self.c['bg'] = params["bg"]
+        pass
+
     def acceptCommand(self,dummy):
         
         while True:
             raw = self.guiPipe.recv()
             params = json.loads(raw)
-            if params["type"] == "pencil-Line":
+            if type(params) is list:
+                self.restoreHistory(params)
+
+            elif params["type"] == "pencil-Line":
                 if "x" in params and "y" in params:
                     x = params["x"]
                     y = params["y"]
