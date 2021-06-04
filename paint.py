@@ -11,7 +11,7 @@ class main:
         self.params = {} 
         self.guiPipe = pipe
         self.master = master
-        self.drawType = "pen"
+        self.drawType = "Pen"
         self.color_fg = 'black'
         self.color_bg = 'white'
         self.old_x = None
