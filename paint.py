@@ -18,7 +18,7 @@ class main:
         self.drawType = "Pen"
         self.color_fg = 'black'
         self.color_bg = 'white'
-        self.shape_color= 'None'
+        self.shape_color= None
         self.old_x = None
         self.old_y = None
         self.penwidth = 5
@@ -45,13 +45,14 @@ class main:
             self.params["y1"] = self.old_y
             self.params["x2"] = e.x
             self.params["y2"] = e.y
+            self.params["fill"] = self.shape_color
 
             if self.drawType == "Rect":
-                self.c.create_rectangle(self.old_x,self.old_y,e.x,e.y,width=self.penwidth,outline=self.color_fg)
+                self.c.create_rectangle(self.old_x,self.old_y,e.x,e.y,width=self.penwidth,outline=self.color_fg,fill=self.shape_color)
                 self.params["type"] = "drawRectangle"
 
             elif self.drawType == "Circle":
-                self.c.create_oval(self.old_x,self.old_y,e.x,e.y,width=self.penwidth,outline=self.color_fg)
+                self.c.create_oval(self.old_x,self.old_y,e.x,e.y,width=self.penwidth,outline=self.color_fg,fill=self.shape_color)
                 self.params["type"] = "drawCircle"
 
             elif self.drawType == "Line":    
@@ -62,7 +63,7 @@ class main:
             self.params["type"] = "pencilLine"
 
         self.params["width"] = self.penwidth
-        self.params["fill"] = self.color_fg
+        self.params["outline"] = self.color_fg
         self.guiPipe.send(json.dumps(self.params))
         self.params = {}      
         self.old_x = None
@@ -121,8 +122,12 @@ class main:
             btn.configure(relief = 'sunken',bg = self.shape_color,fg = self.shape_color)
             print(self.shape_color)
         else:
-            self.shape_color='None'
+            self.shape_color=None
             btn.configure(relief = 'raised',bg = 'light grey',fg='black',text='Fill')
+    
+    def erase(self):
+        self.color_fg='white'
+        self.drawType='Pen'
 
 
     def drawWidgets(self):
@@ -133,43 +138,47 @@ class main:
         top_frame.grid(row=0, column=0, padx=10, pady=5)
         bottom_frame = Frame(self.master, width=550, height=600, bg='grey')
         bottom_frame.grid(row=1, column=0, padx=10, pady=5)
-            
+        
+        mini_frame = Frame(top_frame, width=500, height=100, bg='white')
+        mini_frame.grid(columnspan=12,pady=10)
         # Create frames and labels in left_frame 
-        Label(top_frame, text="Session Code: ").grid(row=0, column=0)
-        t = Text(top_frame,height=1,width=10)
+        Label(mini_frame, text="Session Code: ").pack(side = LEFT)
+        t = Text(mini_frame,height=1,width=10)
         t.insert('end', self.key)
         t.configure(state='disabled')
-        t.grid(row=0, column=1)
+        t.pack(side = LEFT)
         
 
         Button(top_frame, text="Pen Color",command=self.change_fg,width=8).grid(row=1, column=0)
 
         Button(top_frame, text="BG Color",command=self.change_bg).grid(row=1, column=1)
 
-        Button(top_frame, text="Clear",command=self.clear).grid(row=1, column=2)
+        Button(top_frame, text="Erasor",command=self.erase).grid(row=1, column=2)
 
-        Label(top_frame, text='SHAPES:').grid(row=1,column=3,padx= 10)
+        Button(top_frame, text="Clear",command=self.clear).grid(row=1, column=3)
 
-        Button(top_frame, text="Circle",command= lambda: self.set_drawType("Circle")).grid(row=1, column=4)
+        Label(top_frame, text='SHAPES:').grid(row=1,column=4,padx= 10)
 
-        Button(top_frame, text="Rect",command= lambda: self.set_drawType("Rect")).grid(row=1, column=5)
+        Button(top_frame, text="Circle",command= lambda: self.set_drawType("Circle")).grid(row=1, column=5)
 
-        Button(top_frame, text="Pen",command=lambda: self.set_drawType("Pen")).grid(row=1, column=6)
+        Button(top_frame, text="Rect",command= lambda: self.set_drawType("Rect")).grid(row=1, column=6)
 
-        Button(top_frame, text="Line",command= lambda: self.set_drawType("Line")).grid(row=1, column=7)
+        Button(top_frame, text="Pen",command=lambda: self.set_drawType("Pen")).grid(row=1, column=7)
+
+        Button(top_frame, text="Line",command= lambda: self.set_drawType("Line")).grid(row=1, column=8)
 
         myfont = font.Font(overstrike = 1,size=10)
         shapeFill_btn =Button(top_frame, text="Fill",bg = 'light grey',font=myfont)
         shapeFill_btn.config(command=lambda : self.shapeFill(shapeFill_btn))
-        shapeFill_btn.grid(row=1, column=8,padx=5)        
+        shapeFill_btn.grid(row=1, column=9,padx=5)        
 
-        Label(top_frame, text='Pen Width:').grid(row=1,column=9,padx= 5)
+        Label(top_frame, text='Pen Width:').grid(row=1,column=10,padx= 5)
         self.slider = ttk.Scale(top_frame,from_= 5, to = 100,command=self.changeW,orient=HORIZONTAL)
         self.slider.set(self.penwidth)
-        self.slider.grid(row=1,column=10,ipadx=10,padx=5)
+        self.slider.grid(row=1,column=11,ipadx=10,padx=5)
 
         
-        Button(top_frame, text="Save",command= self.save_canvas).grid(row=1, column=12,padx=5)
+        Button(top_frame, text="Save",command= self.save_canvas).grid(row=1, column=12,sticky='e')
             
             
         # Display canvas in right_frame
