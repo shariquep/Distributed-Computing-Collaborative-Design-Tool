@@ -5,7 +5,7 @@ def pencilLine(canvas, params):
         x = params["x"]
         y = params["y"]
         width = params["width"]
-        col = params["fill"]
+        col = params["outline"]
         for i in range(1,len(x)):
             canvas.create_line(x[i-1],y[i-1],x[i],y[i],width=width,fill=col,capstyle=ROUND,smooth=True)
 
@@ -22,7 +22,8 @@ def drawRectangle(canvas,params):
     y2 = params["y2"]
     width = params["width"]
     col = params["fill"]
-    canvas.create_rectangle(x1,y1,x2,y2,width=width,outline=col)
+    outline = params["outline"]
+    canvas.create_rectangle(x1,y1,x2,y2,width=width,outline=outline,fill=col)
 
 def drawCircle(canvas,params):
     x1 = params["x1"]
@@ -31,7 +32,8 @@ def drawCircle(canvas,params):
     y2 = params["y2"]
     width = params["width"]
     col = params["fill"]
-    canvas.create_oval(x1,y1,x2,y2,width=width,outline=col)
+    outline = params["outline"]
+    canvas.create_oval(x1,y1,x2,y2,width=width,outline=outline,fill=col)
 
 def straightLine(canvas,params):
     x1 = params["x1"]

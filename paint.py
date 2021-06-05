@@ -18,7 +18,7 @@ class main:
         self.drawType = "Pen"
         self.color_fg = 'black'
         self.color_bg = 'white'
-        self.shape_color= 'None'
+        self.shape_color= None
         self.old_x = None
         self.old_y = None
         self.penwidth = 5
@@ -45,13 +45,14 @@ class main:
             self.params["y1"] = self.old_y
             self.params["x2"] = e.x
             self.params["y2"] = e.y
+            self.params["fill"] = self.shape_color
 
             if self.drawType == "Rect":
-                self.c.create_rectangle(self.old_x,self.old_y,e.x,e.y,width=self.penwidth,outline=self.color_fg)
+                self.c.create_rectangle(self.old_x,self.old_y,e.x,e.y,width=self.penwidth,outline=self.color_fg,fill=self.shape_color)
                 self.params["type"] = "drawRectangle"
 
             elif self.drawType == "Circle":
-                self.c.create_oval(self.old_x,self.old_y,e.x,e.y,width=self.penwidth,outline=self.color_fg)
+                self.c.create_oval(self.old_x,self.old_y,e.x,e.y,width=self.penwidth,outline=self.color_fg,fill=self.shape_color)
                 self.params["type"] = "drawCircle"
 
             elif self.drawType == "Line":    
@@ -62,7 +63,7 @@ class main:
             self.params["type"] = "pencilLine"
 
         self.params["width"] = self.penwidth
-        self.params["fill"] = self.color_fg
+        self.params["outline"] = self.color_fg
         self.guiPipe.send(json.dumps(self.params))
         self.params = {}      
         self.old_x = None
@@ -121,7 +122,7 @@ class main:
             btn.configure(relief = 'sunken',bg = self.shape_color,fg = self.shape_color)
             print(self.shape_color)
         else:
-            self.shape_color='None'
+            self.shape_color=None
             btn.configure(relief = 'raised',bg = 'light grey',fg='black',text='Fill')
 
 
@@ -139,7 +140,7 @@ class main:
         t = Text(top_frame,height=1,width=10)
         t.insert('end', self.key)
         t.configure(state='disabled')
-        t.grid(row=0, column=1)
+        t.grid(row=0, column=1,padx=20)
         
 
         Button(top_frame, text="Pen Color",command=self.change_fg,width=8).grid(row=1, column=0)

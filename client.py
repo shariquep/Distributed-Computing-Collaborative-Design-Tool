@@ -1,3 +1,4 @@
+from helper import clearCanvas
 import socket
 import json
 import threading
@@ -78,8 +79,9 @@ class Node:
             start_new_thread(self.acceptNewClient, (raw,clientAddress,))
 
     def joinSession(self):
-        if self.datagram["key"] == None:
+        if "key" in self.datagram:
             print("Invalid key")
+            exit()
         else:
             self.key = self.datagram["key"]
             self.connectedHostAdd = (self.datagram["host"][0],self.datagram["host"][1])
@@ -102,6 +104,10 @@ class Node:
             if self.host:
                 message = self.nodePipe.recv()
                 self.history.append(json.loads(message))
+                
+                if "clearCanvas" in message:
+                    self.history = []
+
                 self.datagram["message"] = message
                 for address in self.session["clients"]:
                     self.hostSocket.sendto(str.encode(json.dumps(self.datagram)), address)
