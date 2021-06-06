@@ -4,7 +4,7 @@ import multiprocessing
 import json
 from _thread import start_new_thread
 from helper import *
-
+from PIL import Image
 
 class main:
     def __init__(self,master,pipe,key):
@@ -124,7 +124,10 @@ class main:
         self.drawType=type
 
     def save_canvas(self):  #changing the background color canvas
-        print("Saved")
+        self.c.postscript(file="image.eps")
+        img = Image.open("image.eps")
+        img.save("work.jpg", "JPEG")
+
 
     def shapeFill(self,btn):
         if(btn['relief']=='raised'): 

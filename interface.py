@@ -24,11 +24,11 @@ def existingSession(e1,e2,root):
 
 def startPaint(guiOut,key):
 
-        print("Paint started")
-        root = tk.Tk()
-        paint.main(root,guiOut,key)
-        root.title('Paint App')
-        root.mainloop()
+    print("Paint started")
+    root = tk.Tk()
+    paint.main(root,guiOut,key)
+    root.title('Paint App')
+    root.mainloop()
         
 def display():
 
