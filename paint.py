@@ -9,8 +9,10 @@ from helper import *
 class main:
     def __init__(self,master,pipe,key):
         self.params = {} 
-        self.helperFunc = {"pencilLine":pencilLine, "clearCanvas": clearCanvas, "changeBG": changeBG,
-                            "drawRectangle":drawRectangle, "drawCircle": drawCircle, "straightLine":straightLine}
+        self.helperFunc = {"pencilLine":pencilLine, "clearCanvas": clearCanvas,
+                            "changeBG": changeBG,"drawRectangle":drawRectangle,
+                            "drawCircle": drawCircle, "straightLine":straightLine,
+                            "erase": erase}
         self.key = key
         self.recordXY = True
         self.guiPipe = pipe
@@ -33,13 +35,24 @@ class main:
         if self.drawType == "Pen":
             self.old_x, self.old_y, self.params = drawPencil(self.old_x, self.old_y,e,self.penwidth,
                                                             self.color_fg,self.params,self.c)
+        elif self.drawType == "Erase":
+            self.old_x, self.old_y, self.params = drawPencil(self.old_x, self.old_y,e,self.penwidth,
+                                                            self.color_bg,self.params,self.c)
+
         elif self.recordXY:
             self.recordXY = False
             self.old_x = e.x
             self.old_y = e.y
 
     def reset(self,e):    #reseting or cleaning the canvas
-        if self.drawType != "Pen":
+        if self.drawType == "Pen":
+            self.params["type"] = "pencilLine"
+        
+        elif self.drawType == "Erase":
+            self.params["background"] = self.color_bg
+            self.params["type"] = "erase"
+        
+        else:
             self.recordXY = True
             self.params["x1"] = self.old_x
             self.params["y1"] = self.old_y
@@ -59,8 +72,6 @@ class main:
                 self.c.create_line(self.old_x,self.old_y,e.x,e.y,width=self.penwidth,fill=self.color_fg,capstyle=ROUND,smooth=True)
                 self.params["type"] = "straightLine"
                 
-        else:
-            self.params["type"] = "pencilLine"
 
         self.params["width"] = self.penwidth
         self.params["outline"] = self.color_fg
@@ -124,11 +135,6 @@ class main:
         else:
             self.shape_color=None
             btn.configure(relief = 'raised',bg = 'light grey',fg='black',text='Fill')
-    
-    def erase(self):
-        self.color_fg='white'
-        self.drawType='Pen'
-
 
     def drawWidgets(self):
 
@@ -153,7 +159,7 @@ class main:
 
         Button(top_frame, text="BG Color",command=self.change_bg).grid(row=1, column=1)
 
-        Button(top_frame, text="Erasor",command=self.erase).grid(row=1, column=2)
+        Button(top_frame, text="Erasor",command= lambda: self.set_drawType("Erase")).grid(row=1, column=2)
 
         Button(top_frame, text="Clear",command=self.clear).grid(row=1, column=3)
 

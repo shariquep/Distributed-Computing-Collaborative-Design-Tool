@@ -78,13 +78,14 @@ class Node:
             start_new_thread(self.acceptNewClient, (raw,clientAddress,))
 
     def joinSession(self):
-        if self.datagram["key"] == None:
+        if self.datagram["host"] == None:
             print("Invalid key")
+            exit()
         else:
             self.connectedHostAdd = (self.datagram["host"][0],self.datagram["host"][1])
             self.connectSocket.sendto(str.encode(json.dumps(self.datagram)), self.connectedHostAdd)
             
-            start_new_thread(interface.startPaint, (self.guiPipe,""))
+            start_new_thread(interface.startPaint, (self.guiPipe,self.datagram["key"]))
             
             send = threading.Thread(target=self.sendMessage,  daemon=True)
             read = threading.Thread(target=self.readMessage,  daemon=True)
@@ -101,6 +102,10 @@ class Node:
             if self.host:
                 message = self.nodePipe.recv()
                 self.history.append(json.loads(message))
+                
+                if "clearCanvas" in message:
+                    self.history = []
+                
                 self.datagram["message"] = message
                 for address in self.session["clients"]:
                     self.hostSocket.sendto(str.encode(json.dumps(self.datagram)), address)
