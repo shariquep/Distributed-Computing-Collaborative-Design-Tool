@@ -53,6 +53,11 @@ def straightLine(canvas,params):
     col = params["outline"]
     canvas.create_line(x1,y1,x2,y2,width=width,fill=col,capstyle=ROUND,smooth=True)
 
+def changePermission(params):
+    print(params)
+    return params["access"] == 1
+
+
 def drawPencil(old_x,old_y,e,width,col,params,canvas):
     if old_x and old_y:
             canvas.create_line(old_x,old_y,e.x,e.y,width=width,fill=col,capstyle=ROUND,smooth=True)

@@ -1,34 +1,44 @@
 from tkinter import *
 from functools import partial
+from _thread import start_new_thread
+import json
 
-def printRights(user):
-    if user["access"].get() == 1:
-        print("user {} has read-write access".format(user["name"]))
-    else:
-        print("user {} has read only access".format(user["name"]))
+class permission:
 
-def addUser():
-    c = Checkbutton(window, text=users[-1]["name"], 
-                    variable=users[-1]["access"],
-                    onvalue=1, offvalue=0,
-                    command=partial(printRights, users[-1]))
-    c.pack()
-    # this line is just to check the dynamic func, remove it 
-    users.append({"name": "hal", "access": IntVar()})
+    def __init__(self,master,pipe):
+        self.master = master
+        self.pipe = pipe
+        self.users = []
+        Label(self.master, text="Edit Permission for Users:",width=20, height=3).pack()
+        start_new_thread(self.acceptClient, ('dummy',))
+        
 
-window = Tk()
-window_label = Label(text="Participants:",
-                     width=20, height=3)
-window_label.pack()
+    def changeRights(self,user):
+        data = {}
+        data["name"] = user["name"]
+        data["address"] = user["address"]
+        
+        if user["access"].get() == 1:
+            data["access"] = 1
+        else:
+            data["access"] = 0
+        
+        data["type"] = "changePermission"
+        self.pipe.send((json.dumps(data),data["address"]))
 
-# usernames to be displayed should be dynamically appended to
-# this list, and whenever a new user is appended,
-# call the addUser() function to update the checkbox screen
-users = [{"name": "sha", "access": IntVar()}]
 
-######## remove this button, only added to see if the function works
-b = Button(window, text="Add a checkbox", command=addUser)
-b.pack()
-#########
+    def addUser(self):
+        Checkbutton(self.master, text="  " + self.users[-1]["name"], 
+                        variable=self.users[-1]["access"],
+                        onvalue=1, offvalue=0,
+                        command= partial(self.changeRights,self.users[-1])).pack()
 
-window.mainloop()
+    def acceptClient(self,dummy):
+        while True:
+            name,address = self.pipe.recv()
+            user = {}
+            user["name"] = name
+            user["address"] = address
+            user["access"] = IntVar()
+            self.users.append(user)
+            self.addUser()

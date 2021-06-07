@@ -15,6 +15,7 @@ class Node:
 
     def __init__(self):
         self.guiPipe, self.nodePipe = multiprocessing.Pipe()
+        self.permissionPipe, self.p2nPipe = multiprocessing.Pipe()
         self.host = False
         self.connectPort = (localIP, 20001)
         self.baseHostPort = 30001
@@ -47,6 +48,7 @@ class Node:
         self.datagram = json.loads(raw)
         self.datagram["newPort"] = self.hostPort
         print(self.datagram["name"] + "joined")
+        self.p2nPipe.send((self.datagram["name"],self.session["clients"][-1]))
         self.datagram["PortUpdate"] = True
         self.datagram["history"] = self.history
         self.connectSocket.sendto(str.encode(json.dumps(self.datagram)), clientAddress)
@@ -69,7 +71,10 @@ class Node:
         self.hostSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
         self.hostSocket.bind((localIP, self.hostPort))
         
-        start_new_thread(interface.startPaint, (self.guiPipe,self.datagram["key"],))
+        start_new_thread(interface.startPaint, (self.guiPipe,self.datagram["key"],True,))
+        start_new_thread(interface.startPermission, (self.permissionPipe,))
+        readPermission = threading.Thread(target=self.readPermission, daemon=True)
+        readPermission.start()
 
         while(True):
             raw,clientAddress = self.connectSocket.recvfrom(bufferSize)
@@ -85,7 +90,7 @@ class Node:
             self.connectedHostAdd = (self.datagram["host"][0],self.datagram["host"][1])
             self.connectSocket.sendto(str.encode(json.dumps(self.datagram)), self.connectedHostAdd)
             
-            start_new_thread(interface.startPaint, (self.guiPipe,self.datagram["key"]))
+            start_new_thread(interface.startPaint, (self.guiPipe,self.datagram["key"],False))
             
             send = threading.Thread(target=self.sendMessage,  daemon=True)
             read = threading.Thread(target=self.readMessage,  daemon=True)
@@ -120,6 +125,7 @@ class Node:
             if self.host:
                 raw, clientAdd = self.hostSocket.recvfrom(bufferSize)
                 self.response = json.loads(raw)
+                print(json.loads(self.response["message"]))
                 self.history.append(json.loads(self.response["message"]))
                 self.nodePipe.send(self.response["message"])
                 self.datagram["message"] = self.response["message"]
@@ -134,7 +140,13 @@ class Node:
                     self.nodePipe.send(json.dumps(self.response["history"]))
                 else:
                     self.nodePipe.send(self.response["message"])
-                    
+
+    def readPermission(self):
+        while True:
+            self.datagram["message"],add = self.p2nPipe.recv()
+            self.hostSocket.sendto(str.encode(json.dumps(self.datagram)), add)
+
+
 
     
 if __name__ == "__main__":

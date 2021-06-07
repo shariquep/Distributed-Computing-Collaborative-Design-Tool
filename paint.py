@@ -7,7 +7,7 @@ from helper import *
 from PIL import Image
 
 class main:
-    def __init__(self,master,pipe,key):
+    def __init__(self,master,pipe,key,permission):
         self.params = {} 
         self.helperFunc = {"pencilLine":pencilLine, "clearCanvas": clearCanvas,
                             "changeBG": changeBG,"drawRectangle":drawRectangle,
@@ -17,6 +17,7 @@ class main:
         self.recordXY = True
         self.guiPipe = pipe
         self.master = master
+        self.permission = permission
         self.drawType = "Pen"
         self.color_fg = 'black'
         self.color_bg = 'white'
@@ -31,54 +32,57 @@ class main:
 
 
     def paint(self,e):
-        
-        if self.drawType == "Pen":
-            self.old_x, self.old_y, self.params = drawPencil(self.old_x, self.old_y,e,self.penwidth,
-                                                            self.color_fg,self.params,self.c)
-        elif self.drawType == "Erase":
-            self.old_x, self.old_y, self.params = drawPencil(self.old_x, self.old_y,e,self.penwidth,
-                                                            self.color_bg,self.params,self.c)
+        if self.permission:
+            
+            if self.drawType == "Pen":
+                self.old_x, self.old_y, self.params = drawPencil(self.old_x, self.old_y,e,self.penwidth,
+                                                                self.color_fg,self.params,self.c)
+            elif self.drawType == "Erase":
+                self.old_x, self.old_y, self.params = drawPencil(self.old_x, self.old_y,e,self.penwidth,
+                                                                self.color_bg,self.params,self.c)
 
-        elif self.recordXY:
-            self.recordXY = False
-            self.old_x = e.x
-            self.old_y = e.y
+            elif self.recordXY:
+                self.recordXY = False
+                self.old_x = e.x
+                self.old_y = e.y
 
     def reset(self,e):    #reseting or cleaning the canvas
-        if self.drawType == "Pen":
-            self.params["type"] = "pencilLine"
-        
-        elif self.drawType == "Erase":
-            self.params["background"] = self.color_bg
-            self.params["type"] = "erase"
-        
-        else:
-            self.recordXY = True
-            self.params["x1"] = self.old_x
-            self.params["y1"] = self.old_y
-            self.params["x2"] = e.x
-            self.params["y2"] = e.y
-            self.params["fill"] = self.shape_color
+        if self.permission:
+            if self.drawType == "Pen":
+                self.params["type"] = "pencilLine"
+            
+            elif self.drawType == "Erase":
+                self.params["background"] = self.color_bg
+                self.params["type"] = "erase"
+            
+            else:
+                self.recordXY = True
+                self.params["x1"] = self.old_x
+                self.params["y1"] = self.old_y
+                self.params["x2"] = e.x
+                self.params["y2"] = e.y
+                self.params["fill"] = self.shape_color
 
-            if self.drawType == "Rect":
-                self.c.create_rectangle(self.old_x,self.old_y,e.x,e.y,width=self.penwidth,outline=self.color_fg,fill=self.shape_color)
-                self.params["type"] = "drawRectangle"
+                if self.drawType == "Rect":
+                    self.c.create_rectangle(self.old_x,self.old_y,e.x,e.y,width=self.penwidth,outline=self.color_fg,fill=self.shape_color)
+                    self.params["type"] = "drawRectangle"
 
-            elif self.drawType == "Circle":
-                self.c.create_oval(self.old_x,self.old_y,e.x,e.y,width=self.penwidth,outline=self.color_fg,fill=self.shape_color)
-                self.params["type"] = "drawCircle"
+                elif self.drawType == "Circle":
+                    self.c.create_oval(self.old_x,self.old_y,e.x,e.y,width=self.penwidth,outline=self.color_fg,fill=self.shape_color)
+                    self.params["type"] = "drawCircle"
 
-            elif self.drawType == "Line":    
-                self.c.create_line(self.old_x,self.old_y,e.x,e.y,width=self.penwidth,fill=self.color_fg,capstyle=ROUND,smooth=True)
-                self.params["type"] = "straightLine"
-                
+                elif self.drawType == "Line":    
+                    self.c.create_line(self.old_x,self.old_y,e.x,e.y,width=self.penwidth,fill=self.color_fg,capstyle=ROUND,smooth=True)
+                    self.params["type"] = "straightLine"
+                    
 
-        self.params["width"] = self.penwidth
-        self.params["outline"] = self.color_fg
-        self.guiPipe.send(json.dumps(self.params))
-        self.params = {}      
-        self.old_x = None
-        self.old_y = None
+            self.params["width"] = self.penwidth
+            self.params["outline"] = self.color_fg
+            print(self.params)
+            self.guiPipe.send(json.dumps(self.params))
+            self.params = {}      
+            self.old_x = None
+            self.old_y = None
 
     def restoreHistory(self,commands):
         for params in commands:
@@ -93,6 +97,9 @@ class main:
             if type(params) is list:
                 self.restoreHistory(params)
 
+            elif params["type"] == "changePermission":
+                self.permission = changePermission(params)
+
             else:
                 self.helperFunc[params["type"]](self.c,params)
            
@@ -103,21 +110,24 @@ class main:
            
 
     def clear(self):
-        self.c.delete(ALL)
-        self.params["type"] = "clearCanvas"
-        self.guiPipe.send(json.dumps(self.params))
-        self.params = {}
+        if self.permission:
+            self.c.delete(ALL)
+            self.params["type"] = "clearCanvas"
+            self.guiPipe.send(json.dumps(self.params))
+            self.params = {}
 
     def change_fg(self):  #changing the pen color
-        self.color_fg=colorchooser.askcolor(color=self.color_fg)[1]
+        if self.permission:
+            self.color_fg=colorchooser.askcolor(color=self.color_fg)[1]
 
     def change_bg(self):  #changing the background color canvas
-        self.color_bg=colorchooser.askcolor(color=self.color_bg)[1]
-        self.c['bg'] = self.color_bg
-        self.params["type"] = "changeBG"
-        self.params["bg"] = self.color_bg
-        self.guiPipe.send(json.dumps(self.params))
-        self.params = {}
+        if self.permission:
+            self.color_bg=colorchooser.askcolor(color=self.color_bg)[1]
+            self.c['bg'] = self.color_bg
+            self.params["type"] = "changeBG"
+            self.params["bg"] = self.color_bg
+            self.guiPipe.send(json.dumps(self.params))
+            self.params = {}
 
     def set_drawType(self,type):
         print("Type",type)
