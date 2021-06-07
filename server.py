@@ -41,13 +41,11 @@ def acceptNewCleint(UDPsocket,raw,clientAddress):
         sessions[key] = session
         request["key"] = key
         request["session"] = session
-        print(request)
         UDPsocket.sendto(str.encode(json.dumps(request)),clientAddress)
         pingHost()
 
     elif request["request_type"] == "join":
         key = request["key"]
-        print(request)
         if key in sessions.keys():
             request["host"] = sessions[key]["host"]
             sessions[key]["clients"].append(clientAddress)

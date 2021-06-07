@@ -54,7 +54,6 @@ def straightLine(canvas,params):
     canvas.create_line(x1,y1,x2,y2,width=width,fill=col,capstyle=ROUND,smooth=True)
 
 def changePermission(params):
-    print(params)
     return params["access"] == 1
 
 

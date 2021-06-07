@@ -48,25 +48,16 @@ class Node:
     def acceptNewClient(self,raw,clientAddress):
         self.datagram = json.loads(raw)
         self.datagram["newPort"] = self.hostPort
-        print(self.datagram["name"] + "joined")
         self.p2nPipe.send((self.datagram["name"],self.session["clients"][-1]))
         self.datagram["PortUpdate"] = True
         self.datagram["history"] = self.history
         self.connectSocket.sendto(str.encode(json.dumps(self.datagram)), clientAddress)
         self.datagram.pop("history")
         self.datagram["PortUpdate"] = False
-        send = threading.Thread(target=self.sendMessage, daemon=True)
-        read = threading.Thread(target=self.readMessage, daemon=True)
-
-        send.start()
-        read.start()
-
-        send.join()
-        read.join()
+        
 
     def createSession(self):
         self.host = True 
-        print("Session created with key: " + self.datagram["key"])
         self.session = self.datagram["session"]
         self.hostPort = self.baseHostPort + self.datagram["port_offset"]
         self.hostSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
@@ -76,6 +67,12 @@ class Node:
         start_new_thread(interface.startPermission, (self.permissionPipe,))
         readPermission = threading.Thread(target=self.readPermission, daemon=True)
         readPermission.start()
+
+        send = threading.Thread(target=self.sendMessage, daemon=True)
+        read = threading.Thread(target=self.readMessage, daemon=True)
+
+        send.start()
+        read.start()
 
         while(True):
             raw,clientAddress = self.connectSocket.recvfrom(bufferSize)
@@ -127,7 +124,6 @@ class Node:
             if self.host:
                 raw, clientAdd = self.hostSocket.recvfrom(bufferSize)
                 self.response = json.loads(raw)
-                print(json.loads(self.response["message"]))
                 self.history.append(json.loads(self.response["message"]))
                 self.nodePipe.send(self.response["message"])
                 self.datagram["message"] = self.response["message"]

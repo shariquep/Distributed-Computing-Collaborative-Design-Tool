@@ -78,7 +78,6 @@ class main:
 
             self.params["width"] = self.penwidth
             self.params["outline"] = self.color_fg
-            print(self.params)
             self.guiPipe.send(json.dumps(self.params))
             self.params = {}      
             self.old_x = None
@@ -130,7 +129,6 @@ class main:
             self.params = {}
 
     def set_drawType(self,type):
-        print("Type",type)
         self.drawType=type
 
     def save_canvas(self):  #changing the background color canvas
@@ -144,17 +142,6 @@ class main:
             #SET shape_fill color
             self.shape_color = colorchooser.askcolor(title="Shape Fill Color")[1]
             btn.configure(relief = 'sunken',bg = self.shape_color,fg = self.shape_color)
-            print(self.shape_color)
-        else:
-            self.shape_color=None
-            btn.configure(relief = 'raised',bg = 'light grey',fg='black',text='Fill')
-
-    def shapeFill(self,btn):
-        if(btn['relief']=='raised'): 
-            #SET shape_fill color
-            self.shape_color = colorchooser.askcolor(title="Shape Fill Color")[1]
-            btn.configure(relief = 'sunken',bg = self.shape_color,fg = self.shape_color)
-            print(self.shape_color)
         else:
             self.shape_color=None
             btn.configure(relief = 'raised',bg = 'light grey',fg='black',text='Fill')
