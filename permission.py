@@ -24,6 +24,8 @@ class permission:
             data["access"] = 0
         
         data["type"] = "changePermission"
+        print("permission side:")
+        print(self.users)
         self.pipe.send((json.dumps(data),data["address"]))
 
 
