@@ -12,7 +12,7 @@ class main:
         self.helperFunc = {"pencilLine":pencilLine, "clearCanvas": clearCanvas,
                             "changeBG": changeBG,"drawRectangle":drawRectangle,
                             "drawCircle": drawCircle, "straightLine":straightLine,
-                            "erase": erase}
+                            "erase": erase, "changePermission": changePermission}
         self.key = key
         self.recordXY = True
         self.guiPipe = pipe
@@ -24,6 +24,7 @@ class main:
         self.shape_color= None
         self.old_x = None
         self.old_y = None
+        self.erased = []
         self.penwidth = 5
         self.drawWidgets()
         self.c.bind('<B1-Motion>',self.paint)#drwaing the line 
@@ -35,11 +36,12 @@ class main:
         if self.permission:
             
             if self.drawType == "Pen":
-                self.old_x, self.old_y, self.params = drawPencil(self.old_x, self.old_y,e,self.penwidth,
+                self.old_x, self.old_y, self.params, _ = drawPencil(self.old_x, self.old_y,e,self.penwidth,
                                                                 self.color_fg,self.params,self.c)
             elif self.drawType == "Erase":
-                self.old_x, self.old_y, self.params = drawPencil(self.old_x, self.old_y,e,self.penwidth,
+                self.old_x, self.old_y, self.params, line = drawPencil(self.old_x, self.old_y,e,self.penwidth,
                                                                 self.color_bg,self.params,self.c)
+                self.erased.append(line)
 
             elif self.recordXY:
                 self.recordXY = False
@@ -95,12 +97,8 @@ class main:
 
             if type(params) is list:
                 self.restoreHistory(params)
-
-            elif params["type"] == "changePermission":
-                self.permission = changePermission(params)
-
             else:
-                self.helperFunc[params["type"]](self.c,params)
+                self.helperFunc[params["type"]](self,params)
            
             params = {}
 
@@ -111,6 +109,7 @@ class main:
     def clear(self):
         if self.permission:
             self.c.delete(ALL)
+            self.erased = []
             self.params["type"] = "clearCanvas"
             self.guiPipe.send(json.dumps(self.params))
             self.params = {}
@@ -122,6 +121,12 @@ class main:
     def change_bg(self):  #changing the background color canvas
         if self.permission:
             self.color_bg=colorchooser.askcolor(color=self.color_bg)[1]
+            for line in self.erased:
+                if line == None:
+                    continue
+
+                self.c.itemconfig(line,fill=self.color_bg)
+            
             self.c['bg'] = self.color_bg
             self.params["type"] = "changeBG"
             self.params["bg"] = self.color_bg
