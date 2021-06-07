@@ -9,6 +9,15 @@ def pencilLine(canvas, params):
         for i in range(1,len(x)):
             canvas.create_line(x[i-1],y[i-1],x[i],y[i],width=width,fill=col,capstyle=ROUND,smooth=True)
 
+def erase(canvas, params):
+    if "x" in params and "y" in params:
+        x = params["x"]
+        y = params["y"]
+        width = params["width"]
+        col = params["background"]
+        for i in range(1,len(x)):
+            canvas.create_line(x[i-1],y[i-1],x[i],y[i],width=width,fill=col,capstyle=ROUND,smooth=True)
+
 def clearCanvas(canvas,params):
     canvas.delete(ALL)
 
@@ -41,8 +50,13 @@ def straightLine(canvas,params):
     x2 = params["x2"]
     y2 = params["y2"]
     width = params["width"]
-    col = params["fill"]
+    col = params["outline"]
     canvas.create_line(x1,y1,x2,y2,width=width,fill=col,capstyle=ROUND,smooth=True)
+
+def changePermission(params):
+    print(params)
+    return params["access"] == 1
+
 
 def drawPencil(old_x,old_y,e,width,col,params,canvas):
     if old_x and old_y:

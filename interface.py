@@ -2,7 +2,7 @@ from PIL import Image, ImageTk
 import tkinter as tk
 import paint
 import multiprocessing
-
+import permission
 
 name=''
 code = ''
@@ -22,14 +22,20 @@ def existingSession(e1,e2,root):
     request_type="join"
     root.destroy()
 
-def startPaint(guiOut,key):
+def startPaint(guiOut,key,permission):
 
-        print("Paint started")
-        root = tk.Tk()
-        paint.main(root,guiOut,key)
-        root.title('Paint App')
-        root.mainloop()
+    print("Paint started")
+    root = tk.Tk()
+    paint.main(root,guiOut,key,permission)
+    root.title('Paint App')
+    root.mainloop()
         
+def startPermission(pipe):
+    window = tk.Tk()
+    permission.permission(window,pipe)
+    window.title('User Access Rights')
+    window.mainloop()        
+
 def display():
 
     bgColor= '#FAFAF0'
