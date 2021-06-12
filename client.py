@@ -106,7 +106,7 @@ class Node:
             if self.host:
                 message = self.nodePipe.recv()
                 self.history.append(json.loads(message))
-                
+                print(message)
                 if "clearCanvas" in message:
                     self.history = []
                 
@@ -125,6 +125,8 @@ class Node:
                 raw, clientAdd = self.hostSocket.recvfrom(bufferSize)
                 self.response = json.loads(raw)
                 self.history.append(json.loads(self.response["message"]))
+                if "clearCanvas" in self.response["message"]:
+                    self.history = []
                 self.nodePipe.send(self.response["message"])
                 self.datagram["message"] = self.response["message"]
                 for address in self.session["clients"]:

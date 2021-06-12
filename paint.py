@@ -87,7 +87,7 @@ class main:
 
     def restoreHistory(self,commands):
         for params in commands:
-            self.helperFunc[params["type"]](self.c,params)
+            self.helperFunc[params["type"]](self,params)
     
     def acceptCommand(self,dummy):
         
